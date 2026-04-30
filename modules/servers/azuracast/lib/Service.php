@@ -88,7 +88,10 @@ class Service
     {
         return $this->mediaStorage;
     }
-
+    public function getUserTheme(): string
+    {
+        return $this->userTheme;
+    }
     public function getMediaStorageInBytes(): int
     {
         return $this->mediaStorage * 1000000;
