@@ -270,7 +270,8 @@ function azuracast_CreateAccount(array $params)
             $service->getUserFullName(),
             [['id' => $role->getId()]],
             $service->getUserLocale(),
-            $service->getUserShow24HourTime()
+            $service->getUserShow24HourTime(),
+            $service->getUserTheme()
         );
         $createdUserId = $user->getId();
         $service->setUserId($user->getId());
