@@ -11,6 +11,7 @@ if (!defined("WHMCS")) {
 use WHMCS\Module\Server\AzuraCast\Client;
 use WHMCS\Module\Server\AzuraCast\Dto\RoleDto;
 use WHMCS\Module\Server\AzuraCast\Service;
+use Illuminate\Database\Capsule\Manager as Capsule;
 /**
  * Define module related meta data.
  *
@@ -408,7 +409,6 @@ function azuracast_UnsuspendAccount(array $params)
 function azuracast_TerminateAccount(array $params)
 {
     try {
-
         $service = new Service($params);
         $azuracast = azuracast_ApiClient($params);
 
@@ -420,6 +420,25 @@ function azuracast_TerminateAccount(array $params)
 
         // Remove the dedicated user for this service.
         $azuracast->admin()->users()->delete($service->getUserId());
+
+        // -------------------------
+        // Limpeza dinâmica de campos customizados do serviço deste produto
+        // -------------------------
+        $serviceId = $params['serviceid'];
+        $productId = $params['packageid'];
+
+        // Busca todos os fieldid dos custom fields deste produto, tipo produto/serviço
+        $fieldIds = Capsule::table('tblcustomfields')
+            ->where('type', 'product')
+            ->where('relid', $productId)
+            ->pluck('id');
+
+        if ($fieldIds->isNotEmpty()) {
+            Capsule::table('tblcustomfieldsvalues')
+                ->where('relid', $serviceId)
+                ->whereIn('fieldid', $fieldIds->toArray())
+                ->update(['value' => '']);
+        }
 
     } catch (Exception $e) {
         // Record the error in WHMCS's module log.
