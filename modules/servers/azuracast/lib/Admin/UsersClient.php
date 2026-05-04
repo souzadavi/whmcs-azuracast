@@ -68,7 +68,8 @@ class UsersClient extends AbstractClient
         string $name,
         array $roles,
         ?string $locale = null,
-        ?bool $show24HourTime = null
+        ?bool $show24HourTime = null,
+        ?string $theme = null
     ): Dto\UserDto {
         $payload = [
             'email' => $email,
@@ -83,6 +84,10 @@ class UsersClient extends AbstractClient
 
         if ($show24HourTime !== null) {
             $payload['show_24_hour_time'] = $show24HourTime;
+        }
+
+        if ($theme !== null && $theme !== '') {
+            $payload['theme'] = $theme;
         }
 
         $userData = $this->request(
@@ -116,7 +121,8 @@ class UsersClient extends AbstractClient
         array $roles,
         int $createdAt,
         ?string $locale = null,
-        ?bool $show24HourTime = null
+        ?bool $show24HourTime = null,
+        ?string $theme = null
     ): Dto\UserDto {
 
         $payload = [
@@ -141,6 +147,10 @@ class UsersClient extends AbstractClient
 
         if ($show24HourTime !== null) {
             $payload['show_24_hour_time'] = $show24HourTime;
+        }
+
+        if ($theme !== null && $theme !== '') {
+            $payload['theme'] = $theme;
         }
 
         $userData = $this->request(

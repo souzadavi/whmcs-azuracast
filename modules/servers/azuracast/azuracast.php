@@ -112,92 +112,25 @@ function azuracast_ConfigOptions()
             'Description' => 'Optional. If empty, do not send show_24_hour_time and let AzuraCast use its default.',
             'Default' => '',
         ],
-        // Station permissions granted to the provisioned user role (configoptions 12–24).
-        // If NONE are checked, all permissions are granted (backward-compatible default).
-        'Permission: View Management' => [
-            'FriendlyName' => 'Permission: View Management',
-            'Type' => 'yesno',
-            'Description' => 'Allow user to access the station management page.',
-            'Default' => 'on',
+        // Station permissions granted to the provisioned user role (configoption12).
+        // Use comma-separated aliases or the special value "all" to grant every permission.
+        // Empty value also falls back to all permissions (backward-compatible with old products).
+        // Available aliases: view, reports, logs, profile, broadcasting, streamers,
+        //                    mounts, remotes, media, delete_media, automation, webhooks, podcasts
+        'Station Permissions' => [
+            'FriendlyName' => 'Station Permissions',
+            'Type'         => 'text',
+            'Size'         => '200',
+            'Default'      => 'all',
+            'Description'  => 'Comma-separated aliases or "all". Options: view, reports, logs, profile, broadcasting, streamers, mounts, remotes, media, delete_media, automation, webhooks, podcasts',
         ],
-        'Permission: View Reports' => [
-            'FriendlyName' => 'Permission: View Reports',
-            'Type' => 'yesno',
-            'Description' => 'Allow user to view station reports.',
-            'Default' => 'on',
-        ],
-        'Permission: View Logs' => [
-            'FriendlyName' => 'Permission: View Logs',
-            'Type' => 'yesno',
-            'Description' => 'Allow user to view station logs.',
-            'Default' => 'on',
-        ],
-        'Permission: Manage Profile' => [
-            'FriendlyName' => 'Permission: Manage Profile',
-            'Type' => 'yesno',
-            'Description' => 'Allow user to edit the station profile.',
-            'Default' => 'on',
-        ],
-        'Permission: Manage Broadcasting' => [
-            'FriendlyName' => 'Permission: Manage Broadcasting',
-            'Type' => 'yesno',
-            'Description' => 'Allow user to manage station broadcasting (AutoDJ, stream).',
-            'Default' => 'on',
-        ],
-        'Permission: Manage Streamers' => [
-            'FriendlyName' => 'Permission: Manage Streamers',
-            'Type' => 'yesno',
-            'Description' => 'Allow user to manage station streamers/DJs.',
-            'Default' => 'on',
-        ],
-        'Permission: Manage Mount Points' => [
-            'FriendlyName' => 'Permission: Manage Mount Points',
-            'Type' => 'yesno',
-            'Description' => 'Allow user to manage station mount points.',
-            'Default' => 'on',
-        ],
-        'Permission: Manage Remote Relays' => [
-            'FriendlyName' => 'Permission: Manage Remote Relays',
-            'Type' => 'yesno',
-            'Description' => 'Allow user to manage remote relay stations.',
-            'Default' => 'on',
-        ],
-        'Permission: Manage Media' => [
-            'FriendlyName' => 'Permission: Manage Media',
-            'Type' => 'yesno',
-            'Description' => 'Allow user to upload and manage station media files.',
-            'Default' => 'on',
-        ],
-        'Permission: Delete Media' => [
-            'FriendlyName' => 'Permission: Delete Media',
-            'Type' => 'yesno',
-            'Description' => 'Allow user to delete station media files.',
-            'Default' => 'on',
-        ],
-        'Permission: Manage Automation' => [
-            'FriendlyName' => 'Permission: Manage Automation',
-            'Type' => 'yesno',
-            'Description' => 'Allow user to manage station automation settings.',
-            'Default' => 'on',
-        ],
-        'Permission: Manage Webhooks' => [
-            'FriendlyName' => 'Permission: Manage Webhooks',
-            'Type' => 'yesno',
-            'Description' => 'Allow user to manage station web hooks.',
-            'Default' => 'on',
-        ],
-        'Permission: Manage Podcasts' => [
-            'FriendlyName' => 'Permission: Manage Podcasts',
-            'Type' => 'yesno',
-            'Description' => 'Allow user to manage station podcasts.',
-            'Default' => 'on',
-        ],
+        // User theme (configoption13).
         'User Theme' => [
-            'FriendlyName' => 'User DefaultTheme',
-            'Type' => 'dropdown',
-            'Options' => 'dark,light,browser',
-            'Description' => 'Choose the default theme mode as default.',
-            'Default' => 'dark',
+            'FriendlyName' => 'User Theme',
+            'Type'         => 'dropdown',
+            'Options'      => 'dark,light,browser',
+            'Description'  => 'Default interface theme for the provisioned AzuraCast user.',
+            'Default'      => 'dark',
         ],
     );
 }

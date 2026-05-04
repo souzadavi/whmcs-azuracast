@@ -36,6 +36,7 @@ class Service
      * If creation fails mid-way, these are never persisted, keeping DB state clean.
      */
     private array $pendingIds = [];
+    private string $userTheme;
 
     public function __construct(array $params)
     {
@@ -45,7 +46,7 @@ class Service
         $this->mediaStorage = (int)($params['configoption4'] ?? 0);
         $this->recordingsStorage = (int)($params['configoption5'] ?? 0);
         $this->podcastsStorage = (int)($params['configoption6'] ?? 0);
-        $this->userTheme = trim((string)($params['configoption25'] ?? ''));
+        $this->userTheme = trim((string)($params['configoption13'] ?? 'dark'));
         $this->maxListeners = $params['configoption7'] ?? 0;
         // Allowlist: update this list if AzuraCast adds new frontend types in the future.
         $serverType = $params['configoption8'] ?? 'icecast';
@@ -185,38 +186,48 @@ class Service
     ];
 
     /**
-     * Maps configoption12–24 to their AzuraCast permission string.
-     * If no option is checked (e.g. product created before this feature existed),
-     * all permissions are granted to preserve backward-compatible behaviour.
+     * Maps short aliases (used in the configoption12 CSV field) to AzuraCast permission strings.
+     * The special alias 'all' or an empty field grants every permission (backward-compatible).
      */
-    private const STATION_PERMISSION_MAP = [
-        'configoption12' => 'view station management',
-        'configoption13' => 'view station reports',
-        'configoption14' => 'view station logs',
-        'configoption15' => 'manage station profile',
-        'configoption16' => 'manage station broadcasting',
-        'configoption17' => 'manage station streamers',
-        'configoption18' => 'manage station mounts',
-        'configoption19' => 'manage station remotes',
-        'configoption20' => 'manage station media',
-        'configoption21' => 'delete station media',
-        'configoption22' => 'manage station automation',
-        'configoption23' => 'manage station web hooks',
-        'configoption24' => 'manage station podcasts',
+    private const PERMISSION_ALIAS_MAP = [
+        'view'         => 'view station management',
+        'reports'      => 'view station reports',
+        'logs'         => 'view station logs',
+        'profile'      => 'manage station profile',
+        'broadcasting' => 'manage station broadcasting',
+        'streamers'    => 'manage station streamers',
+        'mounts'       => 'manage station mounts',
+        'remotes'      => 'manage station remotes',
+        'media'        => 'manage station media',
+        'delete_media' => 'delete station media',
+        'automation'   => 'manage station automation',
+        'webhooks'     => 'manage station web hooks',
+        'podcasts'     => 'manage station podcasts',
     ];
 
     private function parseStationPermissions(array $params): array
     {
+        $raw = trim((string)($params['configoption12'] ?? ''));
+
+        // Empty value or explicit 'all' → grant every permission.
+        // Also acts as the backward-compatible fallback for products created before this field existed.
+        if ($raw === '' || strtolower($raw) === 'all') {
+            return array_values(self::PERMISSION_ALIAS_MAP);
+        }
+
         $selected = [];
-        foreach (self::STATION_PERMISSION_MAP as $option => $permission) {
-            if (($params[$option] ?? '') === 'on') {
-                $selected[] = $permission;
+        foreach (array_map('trim', explode(',', $raw)) as $alias) {
+            $alias = strtolower($alias);
+            if ($alias === 'all') {
+                return array_values(self::PERMISSION_ALIAS_MAP);
+            }
+            if (isset(self::PERMISSION_ALIAS_MAP[$alias])) {
+                $selected[] = self::PERMISSION_ALIAS_MAP[$alias];
             }
         }
 
-        // Backward-compatible fallback: if none of the new configoptions are saved yet
-        // (product predates this feature), grant all permissions.
-        return $selected !== [] ? $selected : array_values(self::STATION_PERMISSION_MAP);
+        // If every supplied alias was invalid, fall back to all permissions.
+        return $selected !== [] ? $selected : array_values(self::PERMISSION_ALIAS_MAP);
     }
 
     public function getStationPermissions(): array
