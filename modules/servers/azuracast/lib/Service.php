@@ -3,6 +3,7 @@
 namespace WHMCS\Module\Server\AzuraCast;
 
 use Illuminate\Database\Eloquent\Model;
+use WHMCS\Database\Capsule;
 
 class Service
 {
@@ -313,10 +314,76 @@ class Service
         return $this->password;
     }
 
-    public function serviceProperties(): \WHMCS\Service\Properties
+    /**
+     * Maps pendingIds keys to tblmodule_configuration setting_name values (max 16 chars).
+     */
+    private const PROPERTY_KEY_MAP = [
+        'stationId'           => 'stationId',
+        'userId'              => 'userId',
+        'roleId'              => 'roleId',
+        'mediaStorageId'      => 'mediaStorageId',
+        'recordingsStorageId' => 'recStorId',
+        'podcastsStorageId'   => 'podStorId',
+    ];
+
+    private function saveServiceProperty(string $key, int $value): void
     {
-        return $this->model->serviceProperties;
+        $dbKey     = self::PROPERTY_KEY_MAP[$key] ?? $key;
+        $serviceId = (int)$this->model->id;
+        $now       = date('Y-m-d H:i:s');
+
+        $exists = Capsule::table('tblmodule_configuration')
+            ->where('entity_type', 'hosting')
+            ->where('entity_id', $serviceId)
+            ->where('setting_name', $dbKey)
+            ->exists();
+
+        if ($exists) {
+            Capsule::table('tblmodule_configuration')
+                ->where('entity_type', 'hosting')
+                ->where('entity_id', $serviceId)
+                ->where('setting_name', $dbKey)
+                ->update(['value' => (string)$value, 'updated_at' => $now]);
+        } else {
+            Capsule::table('tblmodule_configuration')->insert([
+                'entity_type'   => 'hosting',
+                'entity_id'     => $serviceId,
+                'setting_name'  => $dbKey,
+                'friendly_name' => $key,
+                'value'         => (string)$value,
+                'created_at'    => $now,
+                'updated_at'    => $now,
+            ]);
+        }
     }
+
+
+private function getServiceProperty(string $key): ?int
+{
+    // 1. Tenta o novo mecanismo (tblmodule_configuration)
+    $dbKey = self::PROPERTY_KEY_MAP[$key] ?? $key;
+    $value = Capsule::table('tblmodule_configuration')
+        ->where('entity_type', 'hosting')
+        ->where('entity_id', (int)$this->model->id)
+        ->where('setting_name', $dbKey)
+        ->value('value');
+
+    if ($value !== null && trim((string)$value) !== '') {
+        return (int)$value;
+    }
+
+    // 2. Fallback: tenta o serviceProperties original (dados antigos)
+    try {
+        $spValue = $this->model->serviceProperties->get($key);
+        if ($spValue !== null && (string)$spValue !== '') {
+            return (int)$spValue;
+        }
+    } catch (\Throwable $e) {
+        // serviceProperties indisponível — retorna null
+    }
+
+    return null;
+}
 
     public function setStationId(int $stationId): void
     {
@@ -325,7 +392,7 @@ class Service
 
     public function getStationId(): ?int
     {
-        return $this->pendingIds['stationId'] ?? $this->model->serviceProperties->get('stationId');
+        return $this->pendingIds['stationId'] ?? $this->getServiceProperty('stationId');
     }
 
     public function setUserId(int $userId): void
@@ -335,7 +402,7 @@ class Service
 
     public function getUserId(): ?int
     {
-        return $this->pendingIds['userId'] ?? $this->model->serviceProperties->get('userId');
+        return $this->pendingIds['userId'] ?? $this->getServiceProperty('userId');
     }
 
     public function setRoleId(int $roleId): void
@@ -345,7 +412,7 @@ class Service
 
     public function getRoleId(): ?int
     {
-        return $this->pendingIds['roleId'] ?? $this->model->serviceProperties->get('roleId');
+        return $this->pendingIds['roleId'] ?? $this->getServiceProperty('roleId');
     }
 
     public function setMediaStorageId(int $mediaStorageId): void
@@ -355,7 +422,7 @@ class Service
 
     public function getMediaStorageId(): ?int
     {
-        return $this->pendingIds['mediaStorageId'] ?? $this->model->serviceProperties->get('mediaStorageId');
+        return $this->pendingIds['mediaStorageId'] ?? $this->getServiceProperty('mediaStorageId');
     }
 
     public function setRecordingsStorageId(int $recordingsStorageId): void
@@ -365,7 +432,7 @@ class Service
 
     public function getRecordingsStorageId(): ?int
     {
-        return $this->pendingIds['recordingsStorageId'] ?? $this->model->serviceProperties->get('recordingsStorageId');
+        return $this->pendingIds['recordingsStorageId'] ?? $this->getServiceProperty('recordingsStorageId');
     }
 
     public function setPodcastsStorageId(int $podcastsStorageId): void
@@ -375,17 +442,17 @@ class Service
 
     public function getPodcastsStorageId(): ?int
     {
-        return $this->pendingIds['podcastsStorageId'] ?? $this->model->serviceProperties->get('podcastsStorageId');
+        return $this->pendingIds['podcastsStorageId'] ?? $this->getServiceProperty('podcastsStorageId');
     }
 
     /**
-     * Persists all IDs staged via the set*Id() methods to the WHMCS serviceProperties database.
+    * Persists all IDs staged via the set*Id() methods to tblmodule_configuration.
      * Call this only after all AzuraCast API calls have succeeded.
      */
     public function commitIds(): void
     {
         foreach ($this->pendingIds as $key => $value) {
-            $this->model->serviceProperties->save([$key => $value]);
+            $this->saveServiceProperty($key, $value);
         }
         $this->pendingIds = [];
     }

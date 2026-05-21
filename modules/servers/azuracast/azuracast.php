@@ -345,14 +345,25 @@ function azuracast_TerminateAccount(array $params)
         $service = new Service($params);
         $azuracast = azuracast_ApiClient($params);
 
+        $roleId    = $service->getRoleId();
+        $stationId = $service->getStationId();
+        $userId    = $service->getUserId();
+
+        if ($roleId === null || $stationId === null || $userId === null) {
+            throw new \RuntimeException(
+                'Cannot terminate: one or more service IDs (role, station, user) are missing from WHMCS. ' .
+                'Run the backfill process to restore IDs and retry termination.'
+            );
+        }
+
         // Remove User Role
-        $azuracast->admin()->roles()->delete($service->getRoleId());
+        $azuracast->admin()->roles()->delete($roleId);
 
         // Remove Station
-        $azuracast->admin()->stations()->delete($service->getStationId());
+        $azuracast->admin()->stations()->delete($stationId);
 
         // Remove the dedicated user for this service.
-        $azuracast->admin()->users()->delete($service->getUserId());
+        $azuracast->admin()->users()->delete($userId);
 
         // -------------------------
         // Limpeza dinâmica de campos customizados do serviço deste produto
@@ -404,7 +415,11 @@ function azuracast_ChangePassword(array $params)
         $service = new Service($params);
         $azuracast = azuracast_ApiClient($params);
 
-        $currentUser = $azuracast->admin()->users()->get($service->getUserId());
+        $changePasswordUserId = $service->getUserId();
+        if ($changePasswordUserId === null) {
+            throw new \RuntimeException('Cannot change password: service user ID is missing. Please contact support.');
+        }
+        $currentUser = $azuracast->admin()->users()->get($changePasswordUserId);
 
         // Update the user's password
         $user = $azuracast->admin()->users()->update(
@@ -541,8 +556,13 @@ function azuracast_ServiceSingleSignOn(array $params)
             return $return;
         }
 
+        $userId = $service->getUserId();
+        if ($userId === null) {
+            $return['error'] = 'Service configuration is incomplete. Please contact support to restore access.';
+            return $return;
+        }
         $azuracast = azuracast_ApiClient($params);
-        $loginUrl = $azuracast->admin()->users()->getLoginLink($service->getUserId());
+        $loginUrl = $azuracast->admin()->users()->getLoginLink($userId);
         azuracast_ValidateSsoRedirectUrl($loginUrl, $params['serverhostname']);
 
         $return = array(
